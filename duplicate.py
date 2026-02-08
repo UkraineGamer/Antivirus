@@ -25,13 +25,6 @@ def folder_search():
     hash_map = defaultdict(list)
     full_path = str(input("Do you want the full path? (y/n): ")).strip().lower() == "y"
 
-    if full_path:
-        for file in path.iterdir():
-            print(file)
-    else:
-        for file in path.iterdir():
-            print(f"{file.parent.name}/{file.name}")
-
     print("Searching for duplicates...")
 
     for file in path.iterdir():
