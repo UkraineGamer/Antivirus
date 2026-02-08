@@ -1,6 +1,4 @@
-import os
-import subprocess
-import sys
+import hashlib
 from pathlib import Path
 
 def folder_search():
@@ -17,10 +15,10 @@ def folder_search():
     folder_search_menu()
 
 def folder_search_menu():
-    choice = str(input("Do you want to continue searching? (y/n): "))
+    choice = str(input("Do you want to search? (y/n): "))
     if choice == "y":
         folder_search()
     else:
         print("Exiting...")
 
-folder_search()
+folder_search_menu()
