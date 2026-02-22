@@ -42,7 +42,7 @@ def folder_search():
                 if full_path:
                     print(f"  {file}")
                 else:
-                    print(f"  {file.parent.name}/{file.name}")
+                    print(str(f"  {file.parent.name}\{file.name}"))
 
     folder_search_menu()
 
