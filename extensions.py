@@ -10,9 +10,10 @@ SUSPICIOUS_EXTENSIONS = {
     ".docm", ".xlsm", ".pptm", ".lnk"
 } 
 
+
 def print_file(files):
     for file in files:
-        print(file)
+        yield file.name
 
 def suspicious_file():
     safe_files = []
@@ -25,15 +26,21 @@ def suspicious_file():
     for file in path.glob('**/*'):
         if file.is_file():
             suffixes = file.suffixes
-            if file.suffix in SUSPICIOUS_EXTENSIONS:
-                warning_files.append(file)
-            elif len(suffixes) > 1:
+            if len(suffixes) > 1:
                 dangerous_files.append(file)
+            elif file.suffix in SUSPICIOUS_EXTENSIONS:
+                warning_files.append(file)
             else:
                 safe_files.append(file)
 
-    print('safe files:\n', print_file(safe_files))
-    print('potantialy dangerous files:\n', print_file(warning_files))
-    print('dangerous files:\n', print_file(dangerous_files))
+    print('safe files:\n')
+    for f in print_file(safe_files):
+        print('-',f)
+    print('potentialy dangerous files:\n')
+    for f in print_file(warning_files):
+        print('-',f)
+    print('dangerous files:\n')
+    for f in print_file(dangerous_files):
+        print('-',f)
 
 suspicious_file()
