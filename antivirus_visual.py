@@ -129,7 +129,62 @@ def scan_folder(path: Path, event_queue: queue.Queue) -> None:
 class AntivirusVisualApp:
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
-        self.root.title("Antivirus Visual Scanner")
+        self.language_var = tk.StringVar(value="English")
+        self.theme_var = tk.StringVar(value="Light")
+
+        self.translations = {
+            "English": {
+                "title": "Antivirus Visual Scanner",
+                "header_title": "Antivirus Visual Scanner",
+                "header_subtitle": "Fast folder scan with clean threat, duplicate and size overview.",
+                "label_folder": "Folder:",
+                "btn_browse": "Browse",
+                "btn_scan": "Start Scan",
+                "btn_settings": "Settings",
+                "status_initial": "Select a folder and start scanning.",
+                "tab_threats": "Threats",
+                "tab_duplicates": "Duplicates",
+                "tab_sizes": "Largest Files",
+                "summary_total": "Total files: {count}",
+                "summary_safe": "Safe: {count}",
+                "summary_warning": "Warning: {count}",
+                "summary_danger": "Danger: {count}",
+                "summary_duplicates": "Duplicate groups: {count}",
+                "summary_errors": "Errors: {count}",
+                "settings_title": "Settings",
+                "settings_theme": "Theme",
+                "settings_language": "Language",
+                "settings_apply": "Apply",
+                "settings_close": "Close",
+            },
+            "Українська": {
+                "title": "Антивірусний сканер",
+                "header_title": "Антивірусний сканер",
+                "header_subtitle": "Швидке сканування папки з оглядом загроз, дублікатів та розміру файлів.",
+                "label_folder": "Папка:",
+                "btn_browse": "Обрати",
+                "btn_scan": "Почати сканування",
+                "btn_settings": "Налаштування",
+                "status_initial": "Оберіть папку та запустіть сканування.",
+                "tab_threats": "Загрози",
+                "tab_duplicates": "Дублікаті",
+                "tab_sizes": "Найбільші файли",
+                "summary_total": "Всього файлів: {count}",
+                "summary_safe": "Безпечні: {count}",
+                "summary_warning": "Попередження: {count}",
+                "summary_danger": "Небезпечні: {count}",
+                "summary_duplicates": "Груп дублікатів: {count}",
+                "summary_errors": "Помилки: {count}",
+                "settings_title": "Налаштування",
+                "settings_theme": "Тема",
+                "settings_language": "Мова",
+                "settings_apply": "Застосувати",
+                "settings_close": "Закрити",
+            },
+        }
+
+        current_texts = self.translations[self.language_var.get()]
+        self.root.title(current_texts["title"])
         self.root.geometry("1120x760")
         self.root.minsize(960, 620)
 
@@ -137,15 +192,15 @@ class AntivirusVisualApp:
         self.scan_thread: Optional[threading.Thread] = None
 
         self.folder_var = tk.StringVar()
-        self.status_var = tk.StringVar(value="Select a folder and start scanning.")
+        self.status_var = tk.StringVar(value=current_texts["status_initial"])
         self.progress_var = tk.DoubleVar(value=0)
 
-        self.total_label_var = tk.StringVar(value="Total files: 0")
-        self.safe_label_var = tk.StringVar(value="Safe: 0")
-        self.warning_label_var = tk.StringVar(value="Warning: 0")
-        self.danger_label_var = tk.StringVar(value="Danger: 0")
-        self.duplicate_label_var = tk.StringVar(value="Duplicate groups: 0")
-        self.error_label_var = tk.StringVar(value="Errors: 0")
+        self.total_label_var = tk.StringVar()
+        self.safe_label_var = tk.StringVar()
+        self.warning_label_var = tk.StringVar()
+        self.danger_label_var = tk.StringVar()
+        self.duplicate_label_var = tk.StringVar()
+        self.error_label_var = tk.StringVar()
 
         self.counts = {
             "total": 0,
@@ -161,16 +216,31 @@ class AntivirusVisualApp:
         self._build_layout()
 
     def _setup_style(self) -> None:
-        palette = {
-            "bg": "#f4f7fb",
-            "card": "#ffffff",
-            "accent": "#0f62fe",
-            "text": "#0f172a",
-            "muted": "#51607a",
-            "safe": "#1b8f3c",
-            "warning": "#d17900",
-            "danger": "#be123c",
-        }
+        theme = self.theme_var.get() if hasattr(self, "theme_var") else "Light"
+        if theme == "Dark":
+            palette = {
+                "bg": "#0a0d14",
+                "card": "#111522",
+                "surface": "#0f1420",
+                "border": "#273246",
+                "accent": "#23304a",
+                "text": "#e6edf7",
+                "muted": "#9aa4b2",
+                "safe": "#22c55e",
+                "warning": "#f59e0b",
+                "danger": "#fb7185",
+            }
+        else:
+            palette = {
+                "bg": "#f4f7fb",
+                "card": "#ffffff",
+                "accent": "#0f62fe",
+                "text": "#0f172a",
+                "muted": "#51607a",
+                "safe": "#1b8f3c",
+                "warning": "#d17900",
+                "danger": "#be123c",
+            }
         self.palette = palette
 
         self.root.configure(bg=palette["bg"])
@@ -178,7 +248,12 @@ class AntivirusVisualApp:
         style.theme_use("clam")
 
         style.configure("TFrame", background=palette["bg"])
-        style.configure("Card.TFrame", background=palette["card"], relief="flat")
+        style.configure(
+            "Card.TFrame",
+            background=palette["card"],
+            relief="solid" if theme == "Dark" else "flat",
+            borderwidth=1 if theme == "Dark" else 0,
+        )
         style.configure(
             "Title.TLabel",
             font=("Segoe UI", 24, "bold"),
@@ -214,82 +289,181 @@ class AntivirusVisualApp:
         )
         style.map(
             "Primary.TButton",
-            background=[("active", "#0b4dc4"), ("disabled", "#a6bff6")],
-            foreground=[("disabled", "#f2f5ff")],
+            background=[
+                ("active", "#2b3854" if theme == "Dark" else "#0b4dc4"),
+                ("disabled", "#1a2233" if theme == "Dark" else "#a6bff6"),
+            ],
+            foreground=[("disabled", "#9aa4b2" if theme == "Dark" else "#f2f5ff")],
         )
 
-        style.configure(
-            "TEntry",
-            fieldbackground="white",
-            bordercolor="#d2dae8",
-            relief="flat",
-            padding=8,
-        )
-        style.configure(
-            "TNotebook",
-            background=palette["bg"],
-            borderwidth=0,
-            tabmargins=(0, 0, 0, 0),
-        )
-        style.configure(
-            "TNotebook.Tab",
-            font=("Segoe UI", 10, "bold"),
-            padding=(12, 8),
-            background="#dce6fb",
-            foreground=palette["text"],
-        )
-        style.map("TNotebook.Tab", background=[("selected", "#ffffff")])
+        if theme == "Dark":
+            style.configure(
+                "TEntry",
+                fieldbackground=palette["surface"],
+                foreground=palette["text"],
+                bordercolor=palette["border"],
+                relief="flat",
+                padding=8,
+                insertcolor=palette["text"],
+            )
+            style.configure(
+                "TNotebook",
+                background=palette["bg"],
+                borderwidth=0,
+                tabmargins=(0, 0, 0, 0),
+            )
+            style.configure(
+                "TNotebook.Tab",
+                font=("Segoe UI", 10, "bold"),
+                padding=(12, 8),
+                background=palette["surface"],
+                foreground=palette["text"],
+            )
+            style.map(
+                "TNotebook.Tab",
+                background=[("selected", palette["card"]), ("active", "#141b2a")],
+                foreground=[("selected", palette["text"]), ("active", palette["text"])],
+            )
 
-        style.configure(
-            "Horizontal.TProgressbar",
-            troughcolor="#e0e8f7",
-            background=palette["accent"],
-            bordercolor="#e0e8f7",
-            lightcolor=palette["accent"],
-            darkcolor=palette["accent"],
-            thickness=15,
-        )
+            style.configure(
+                "Horizontal.TProgressbar",
+                troughcolor=palette["surface"],
+                background=palette["accent"],
+                bordercolor=palette["surface"],
+                lightcolor=palette["accent"],
+                darkcolor=palette["accent"],
+                thickness=15,
+            )
 
-        style.configure(
-            "Treeview",
-            background="white",
-            fieldbackground="white",
-            rowheight=25,
-            font=("Segoe UI", 10),
-            bordercolor="#dbe2ef",
-        )
-        style.configure("Treeview.Heading", font=("Segoe UI", 10, "bold"))
+            style.configure(
+                "Treeview",
+                background=palette["surface"],
+                fieldbackground=palette["surface"],
+                foreground=palette["text"],
+                rowheight=25,
+                font=("Segoe UI", 10),
+                bordercolor=palette["border"],
+            )
+            style.configure(
+                "Treeview.Heading",
+                font=("Segoe UI", 10, "bold"),
+                foreground=palette["text"],
+                background=palette["card"],
+            )
+            style.map(
+                "Treeview",
+                background=[("selected", "#1f2a3a")],
+                foreground=[("selected", palette["text"])],
+            )
+            style.configure(
+                "TCombobox",
+                fieldbackground=palette["surface"],
+                foreground=palette["text"],
+                background=palette["surface"],
+                bordercolor=palette["border"],
+                arrowsize=14,
+                padding=6,
+            )
+            style.map(
+                "TCombobox",
+                fieldbackground=[("readonly", palette["surface"])],
+                foreground=[("readonly", palette["text"])],
+            )
+            style.configure(
+                "TScrollbar",
+                background=palette["surface"],
+                troughcolor=palette["bg"],
+                bordercolor=palette["bg"],
+                arrowcolor=palette["muted"],
+            )
+        else:
+            style.configure(
+                "TEntry",
+                fieldbackground="white",
+                bordercolor="#d2dae8",
+                relief="flat",
+                padding=8,
+            )
+            style.configure(
+                "TNotebook",
+                background=palette["bg"],
+                borderwidth=0,
+                tabmargins=(0, 0, 0, 0),
+            )
+            style.configure(
+                "TNotebook.Tab",
+                font=("Segoe UI", 10, "bold"),
+                padding=(12, 8),
+                background="#dce6fb",
+                foreground=palette["text"],
+            )
+            style.map("TNotebook.Tab", background=[("selected", "#ffffff")])
+
+            style.configure(
+                "Horizontal.TProgressbar",
+                troughcolor="#e0e8f7",
+                background=palette["accent"],
+                bordercolor="#e0e8f7",
+                lightcolor=palette["accent"],
+                darkcolor=palette["accent"],
+                thickness=15,
+            )
+
+            style.configure(
+                "Treeview",
+                background="white",
+                fieldbackground="white",
+                rowheight=25,
+                font=("Segoe UI", 10),
+                bordercolor="#dbe2ef",
+            )
+            style.configure("Treeview.Heading", font=("Segoe UI", 10, "bold"))
 
     def _build_layout(self) -> None:
+        texts = self.translations[self.language_var.get()]
+
         main = ttk.Frame(self.root, padding=18)
         main.pack(fill="both", expand=True)
+        self.main_frame = main
 
         header = ttk.Frame(main)
         header.pack(fill="x")
-        ttk.Label(header, text="Antivirus Visual Scanner", style="Title.TLabel").pack(anchor="w")
-        ttk.Label(
+        self.header_title_label = ttk.Label(header, text=texts["header_title"], style="Title.TLabel")
+        self.header_title_label.pack(anchor="w")
+        self.header_subtitle_label = ttk.Label(
             header,
-            text="Fast folder scan with clean threat, duplicate and size overview.",
+            text=texts["header_subtitle"],
             style="Subtitle.TLabel",
-        ).pack(anchor="w", pady=(2, 12))
+        )
+        self.header_subtitle_label.pack(anchor="w", pady=(2, 12))
 
         controls = ttk.Frame(main, style="Card.TFrame", padding=14)
         controls.pack(fill="x")
 
-        ttk.Label(controls, text="Folder:", style="Header.TLabel").grid(row=0, column=0, sticky="w")
+        ttk.Label(controls, text=texts["label_folder"], style="Header.TLabel").grid(
+            row=0, column=0, sticky="w"
+        )
         self.folder_entry = ttk.Entry(controls, textvariable=self.folder_var)
         self.folder_entry.grid(row=1, column=0, sticky="ew", padx=(0, 8), pady=(4, 0))
 
-        self.browse_btn = ttk.Button(controls, text="Browse", command=self.pick_folder)
+        self.browse_btn = ttk.Button(controls, text=texts["btn_browse"], command=self.pick_folder)
         self.browse_btn.grid(row=1, column=1, sticky="ew", padx=(0, 8), pady=(4, 0))
 
         self.scan_btn = ttk.Button(
             controls,
-            text="Start Scan",
+            text=texts["btn_scan"],
             style="Primary.TButton",
             command=self.start_scan,
         )
         self.scan_btn.grid(row=1, column=2, sticky="ew", pady=(4, 0))
+
+        self.settings_btn = ttk.Button(
+            controls,
+            text=texts["btn_settings"],
+            command=self.open_settings,
+        )
+        self.settings_btn.grid(row=1, column=3, sticky="ew", padx=(8, 0), pady=(4, 0))
+
         controls.columnconfigure(0, weight=1)
 
         progress_card = ttk.Frame(main, style="Card.TFrame", padding=(14, 12))
@@ -329,9 +503,11 @@ class AntivirusVisualApp:
 
         notebook = ttk.Notebook(notebook_wrap)
         notebook.pack(fill="both", expand=True)
+        self.notebook = notebook
 
         threats_tab = ttk.Frame(notebook)
-        notebook.add(threats_tab, text="Threats")
+        self.threats_tab = threats_tab
+        notebook.add(threats_tab, text=texts["tab_threats"])
         self.threats_tree = self._build_tree(
             threats_tab,
             columns=("status", "file", "notes"),
@@ -363,9 +539,11 @@ class AntivirusVisualApp:
             label="Ignore warning",
             command=lambda: self.apply_threat_action("ignore"),
         )
+        self._apply_menu_theme()
 
         dup_tab = ttk.Frame(notebook)
-        notebook.add(dup_tab, text="Duplicates")
+        self.duplicates_tab = dup_tab
+        notebook.add(dup_tab, text=texts["tab_duplicates"])
         self.duplicates_tree = self._build_tree(
             dup_tab,
             columns=("hash", "count", "files"),
@@ -374,7 +552,8 @@ class AntivirusVisualApp:
         )
 
         size_tab = ttk.Frame(notebook)
-        notebook.add(size_tab, text="Largest Files")
+        self.size_tab = size_tab
+        notebook.add(size_tab, text=texts["tab_sizes"])
         self.size_tree = self._build_tree(
             size_tab,
             columns=("file", "size"),
@@ -490,12 +669,125 @@ class AntivirusVisualApp:
         self._refresh_summary_labels()
 
     def _refresh_summary_labels(self) -> None:
-        self.total_label_var.set(f"Total files: {self.counts['total']}")
-        self.safe_label_var.set(f"Safe: {self.counts['safe']}")
-        self.warning_label_var.set(f"Warning: {self.counts['warning']}")
-        self.danger_label_var.set(f"Danger: {self.counts['danger']}")
-        self.duplicate_label_var.set(f"Duplicate groups: {self.counts['duplicates']}")
-        self.error_label_var.set(f"Errors: {self.counts['errors']}")
+        texts = self.translations[self.language_var.get()]
+        self.total_label_var.set(texts["summary_total"].format(count=self.counts["total"]))
+        self.safe_label_var.set(texts["summary_safe"].format(count=self.counts["safe"]))
+        self.warning_label_var.set(texts["summary_warning"].format(count=self.counts["warning"]))
+        self.danger_label_var.set(texts["summary_danger"].format(count=self.counts["danger"]))
+        self.duplicate_label_var.set(
+            texts["summary_duplicates"].format(count=self.counts["duplicates"])
+        )
+        self.error_label_var.set(texts["summary_errors"].format(count=self.counts["errors"]))
+
+    def _apply_theme(self) -> None:
+        self._setup_style()
+        # Update tag colors based on new palette
+        self.threats_tree.tag_configure("safe", foreground=self.palette["safe"])
+        self.threats_tree.tag_configure("warning", foreground=self.palette["warning"])
+        self.threats_tree.tag_configure("danger", foreground=self.palette["danger"])
+        self.threats_tree.tag_configure("resolved", foreground="#64748b")
+        self._apply_menu_theme()
+
+    def _apply_menu_theme(self) -> None:
+        if not hasattr(self, "threat_menu"):
+            return
+        if self.theme_var.get() == "Dark":
+            self.threat_menu.configure(
+                background=self.palette["card"],
+                foreground=self.palette["text"],
+                activebackground="#141b2a",
+                activeforeground=self.palette["text"],
+                borderwidth=0,
+            )
+        else:
+            self.threat_menu.configure(
+                background="white",
+                foreground="#0f172a",
+                activebackground="#e2e8f0",
+                activeforeground="#0f172a",
+                borderwidth=0,
+            )
+
+    def _apply_language(self) -> None:
+        texts = self.translations[self.language_var.get()]
+        # Window title and header
+        self.root.title(texts["title"])
+        self.header_title_label.configure(text=texts["header_title"])
+        self.header_subtitle_label.configure(text=texts["header_subtitle"])
+
+        # Controls
+        for child in self.main_frame.winfo_children():
+            # Header label for folder is the first label in controls frame
+            pass
+        # Simpler: reconfigure known widgets directly
+        # Folder label: find by grid position (0,0) in controls frame
+        # To keep code simple and explicit, store the label when building layout
+        # (added attribute in _build_layout)
+
+        # Summary labels
+        self._refresh_summary_labels()
+
+        # Tabs
+        if hasattr(self, "notebook"):
+            self.notebook.tab(self.threats_tab, text=texts["tab_threats"])
+            self.notebook.tab(self.duplicates_tab, text=texts["tab_duplicates"])
+            self.notebook.tab(self.size_tab, text=texts["tab_sizes"])
+
+        # Buttons
+        self.browse_btn.configure(text=texts["btn_browse"])
+        self.scan_btn.configure(text=texts["btn_scan"])
+        self.settings_btn.configure(text=texts["btn_settings"])
+
+        # Status text only if it's still the initial one
+        if not self.folder_var.get() and "scan" not in self.status_var.get().lower():
+            self.status_var.set(texts["status_initial"])
+
+    def open_settings(self) -> None:
+        texts = self.translations[self.language_var.get()]
+
+        window = tk.Toplevel(self.root)
+        window.title(texts["settings_title"])
+        window.transient(self.root)
+        window.resizable(False, False)
+
+        frame = ttk.Frame(window, padding=12)
+        frame.pack(fill="both", expand=True)
+
+        ttk.Label(frame, text=texts["settings_theme"]).grid(row=0, column=0, sticky="w", pady=(0, 6))
+        theme_combo = ttk.Combobox(
+            frame,
+            values=["Light", "Dark"],
+            state="readonly",
+            textvariable=self.theme_var,
+        )
+        theme_combo.grid(row=0, column=1, sticky="ew", pady=(0, 6), padx=(8, 0))
+
+        ttk.Label(frame, text=texts["settings_language"]).grid(
+            row=1, column=0, sticky="w", pady=(0, 6)
+        )
+        language_combo = ttk.Combobox(
+            frame,
+            values=list(self.translations.keys()),
+            state="readonly",
+            textvariable=self.language_var,
+        )
+        language_combo.grid(row=1, column=1, sticky="ew", pady=(0, 6), padx=(8, 0))
+
+        button_row = ttk.Frame(frame)
+        button_row.grid(row=2, column=0, columnspan=2, pady=(10, 0), sticky="e")
+
+        def apply_and_close() -> None:
+            self._apply_theme()
+            self._apply_language()
+            window.destroy()
+
+        apply_btn = ttk.Button(button_row, text=texts["settings_apply"], command=apply_and_close)
+        apply_btn.pack(side="right", padx=(0, 6))
+
+        close_btn = ttk.Button(button_row, text=texts["settings_close"], command=window.destroy)
+        close_btn.pack(side="right")
+
+        frame.columnconfigure(1, weight=1)
 
     def render_results(self, result: Dict[str, object]) -> None:
         total = result["total"]
